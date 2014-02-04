@@ -345,12 +345,22 @@ if (typeof module === 'object') {
             var self = this,
                 timer,
                 i;
+
             this.checkSelectionWrapper = function (e) {
                 clearTimeout(timer);
                 timer = setTimeout(function () {
                     self.checkSelection();
-                    self.checkLink(e);
                 }, self.options.delay);
+            };
+
+            this.checkLink = function (e) {
+                if (e.target.tagName.toLowerCase() === 'a') {
+                    selectElementContents(e.target);
+                    self.showLinkToolbar(e);
+                    self.checkSelectionWrapper();
+                } else if (self.linkToolbar) {
+                    self.hideLinkToolbar();
+                }
             };
 
             document.documentElement.addEventListener('mouseup', this.checkSelectionWrapper);
@@ -358,6 +368,7 @@ if (typeof module === 'object') {
             for (i = 0; i < this.elements.length; i += 1) {
                 this.elements[i].addEventListener('keyup', this.checkSelectionWrapper);
                 this.elements[i].addEventListener('blur', this.checkSelectionWrapper);
+                this.elements[i].addEventListener('click', this.checkLink);
             }
             return this;
         },
@@ -380,16 +391,6 @@ if (typeof module === 'object') {
                 }
             }
             return this;
-        },
-
-        checkLink: function (e) {
-            if (e.target.tagName.toLowerCase() === 'a') {
-                selectElementContents(e.target);
-                this.showLinkToolbar(e);
-                this.checkSelection();
-            } else if (this.linkToolbar) {
-                this.hideLinkToolbar();
-            }
         },
 
         showLinkToolbar: function (e) {
@@ -418,8 +419,6 @@ if (typeof module === 'object') {
         bindLinkToolbarActions: function () {
             var self = this;
             this.linkToolbar.querySelector('.medium-editor-link-edit').addEventListener('click', function (e) {
-                e.stopPropagation();
-                console.log('oi');
                 e.preventDefault();
                 self.showAnchorForm();
             });

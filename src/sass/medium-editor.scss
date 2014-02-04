@@ -179,6 +179,7 @@ $button_size: 50px;
     padding: 6px;
     z-index: 2000;
     background-color: $bgcolor;
+    background-color: rgba($bgcolor, .9);
     color: #fff;
     font-size: 12px;
     @include box-shadow(0 0 3px rgba(#000, .3));
