@@ -344,7 +344,16 @@ if (typeof module === 'object') {
         bindSelect: function () {
             var self = this,
                 timer,
-                i;
+                i,
+                checkLink = function (e) {
+                    if (e.target.tagName.toLowerCase() === 'a') {
+                        selectElementContents(e.target);
+                        self.showLinkToolbar(e);
+                        self.checkSelectionWrapper();
+                    } else if (self.linkToolbar) {
+                        self.hideLinkToolbar();
+                    }
+                };
 
             this.checkSelectionWrapper = function (e) {
                 clearTimeout(timer);
@@ -353,22 +362,12 @@ if (typeof module === 'object') {
                 }, self.options.delay);
             };
 
-            this.checkLink = function (e) {
-                if (e.target.tagName.toLowerCase() === 'a') {
-                    selectElementContents(e.target);
-                    self.showLinkToolbar(e);
-                    self.checkSelectionWrapper();
-                } else if (self.linkToolbar) {
-                    self.hideLinkToolbar();
-                }
-            };
-
             document.documentElement.addEventListener('mouseup', this.checkSelectionWrapper);
 
             for (i = 0; i < this.elements.length; i += 1) {
                 this.elements[i].addEventListener('keyup', this.checkSelectionWrapper);
                 this.elements[i].addEventListener('blur', this.checkSelectionWrapper);
-                this.elements[i].addEventListener('click', this.checkLink);
+                this.elements[i].addEventListener('click', checkLink);
             }
             return this;
         },
