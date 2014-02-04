@@ -347,9 +347,7 @@ if (typeof module === 'object') {
                 i,
                 checkLink = function (e) {
                     if (e.target.tagName.toLowerCase() === 'a') {
-                        selectElementContents(e.target);
                         self.showLinkToolbar(e);
-                        self.checkSelectionWrapper();
                     } else if (self.linkToolbar) {
                         self.hideLinkToolbar();
                     }
@@ -397,6 +395,7 @@ if (typeof module === 'object') {
                 this.linkToolbar = this.createLinkToolbar();
                 this.bindLinkToolbarActions();
             }
+            selectElementContents(e.target);
             this.linkToolbar.style.display = 'block';
             this.setLinkToolbarPosition(e);
         },
