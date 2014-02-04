@@ -1,4 +1,4 @@
-/*global module*/
+/*global module, console*/
 
 function MediumEditor(elements, options) {
     'use strict';
@@ -23,6 +23,17 @@ if (typeof module === 'object') {
             }
         }
         return b;
+    }
+
+
+    // http://stackoverflow.com/questions/6139107/programatically-select-text-in-a-contenteditable-html-element
+    // by Tim Down
+    function selectElementContents(el) {
+        var range = document.createRange(),
+            sel = window.getSelection();
+        range.selectNodeContents(el);
+        sel.removeAllRanges();
+        sel.addRange(range);
     }
 
     // http://stackoverflow.com/questions/5605401/insert-link-in-contenteditable-element
@@ -334,12 +345,13 @@ if (typeof module === 'object') {
 
         bindSelect: function () {
             var self = this,
-                timer = '',
+                timer,
                 i;
-            this.checkSelectionWrapper = function () {
+            this.checkSelectionWrapper = function (e) {
                 clearTimeout(timer);
                 timer = setTimeout(function () {
                     self.checkSelection();
+                    self.checkLink(e);
                 }, self.options.delay);
             };
 
@@ -370,6 +382,54 @@ if (typeof module === 'object') {
                 }
             }
             return this;
+        },
+
+        checkLink: function (e) {
+            if (e.target.tagName.toLowerCase() === 'a') {
+                selectElementContents(e.target);
+                this.showLinkToolbar(e);
+                this.checkSelection();
+            } else if (this.linkToolbar) {
+                this.hideLinkToolbar();
+            }
+        },
+
+        showLinkToolbar: function (e) {
+            if (!this.linkToolbar) {
+                this.linkToolbar = this.createLinkToolbar();
+                this.bindLinkToolbarActions();
+            }
+            this.linkToolbar.style.display = 'block';
+            this.setLinkToolbarPosition(e);
+        },
+
+        hideLinkToolbar: function () {
+            this.linkToolbar.style.display = 'none';
+        },
+
+        createLinkToolbar: function () {
+            var toolbar = document.createElement('div');
+            toolbar.className = 'medium-editor-link-toolbar';
+            toolbar.innerHTML = '<a href="#" class="medium-editor-link-visit">visit</a>' +
+                                '<a href="#" class="medium-editor-link-edit">edit</a>' +
+                                '<a href="#" class="medium-editor-link-remove">remove</a>';
+            document.getElementsByTagName('body')[0].appendChild(toolbar);
+            return toolbar;
+        },
+
+        bindLinkToolbarActions: function () {
+            var self = this;
+            this.linkToolbar.querySelector('.medium-editor-link-edit').addEventListener('click', function (e) {
+                e.stopPropagation();
+                console.log('oi');
+                e.preventDefault();
+                self.showAnchorForm();
+            });
+        },
+
+        setLinkToolbarPosition: function (e) {
+            this.linkToolbar.style.top = e.pageY + 15 + 'px';
+            this.linkToolbar.style.left = e.pageX + 'px';
         },
 
         hasMultiParagraphs: function () {

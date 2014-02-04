@@ -170,3 +170,28 @@ $button_size: 50px;
         font-style: italic;
     }
 }
+
+.medium-editor-link-toolbar {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 6px;
+    z-index: 2000;
+    background-color: $bgcolor;
+    color: #fff;
+    font-size: 12px;
+    @include box-shadow(0 0 3px rgba(#000, .3));
+    @include border-radius(3px);
+    a {
+        display: inline-block;
+        padding: 0 6px;
+        color: #fff;
+        text-decoration: none;
+        @include transition(color .2s linear);
+        &:hover {
+            color: #ccc;
+            color: rgba(#fff, .5);
+        }
+    }
+}
