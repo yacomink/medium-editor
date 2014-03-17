@@ -938,10 +938,11 @@ if (typeof module === 'object') {
                 }
 
                 if (e.clipboardData && e.clipboardData.getData && !e.defaultPrevented) {
-                    if (self.options.cleanPastedHTML) {
-                        self.cleanPaste(e);
-                    }
                     e.preventDefault();
+
+                    if (self.options.cleanPastedHTML && e.clipboardData.getData('text/html')) {
+                        return self.cleanPaste(e.clipboardData.getData('text/html'));
+                    }
                     if (!self.options.disableReturn) {
                         paragraphs = e.clipboardData.getData('text/plain').split(/[\r\n]/g);
                         for (p = 0; p < paragraphs.length; p += 1) {
@@ -982,40 +983,7 @@ if (typeof module === 'object') {
             return this;
         },
 
-        cleanPaste: function(e) {
-
-            if (e.clipboardData && e.clipboardData.getData) {
-
-                // stop default and filter only if the clipboard data is html
-                var c = e.clipboardData.getData('text/html');
-                if (c && /<p|<br|<div/.test(c)) {
-
-                    // multi-line html paste
-                    e.preventDefault();
-                    this.cleanPastedHTML(c, true);
-
-                } else if (c) {
-
-                    // inline html paste
-                    e.preventDefault();
-                    c = this.cleanPastedHTML(c, false);
-
-                    document.execCommand('insertHTML', false, c);
-
-                    this.cleanupSpans();
-
-                } else if (e.clipboardData.getData('text/plain')) {
-
-                    e.preventDefault();
-                    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
-
-                }
-
-            }
-
-        },
-
-        cleanPastedHTML: function(text, multiline) {
+        cleanPaste: function(text) {
 
             /*jslint regexp: true*/
             /*
@@ -1024,58 +992,63 @@ if (typeof module === 'object') {
                 block, negation is used specifically to match the end of an html
                 tag, and in fact unicode characters *should* be allowed.
             */
-            var i, badGraphs, replacements = [
+            var i, badGraphs,
+                el = this.getSelectionElement(),
+                multiline = /<p|<br|<div/.test(text),
+                replacements = [
 
-                // replace two bogus tags that begin pastes from google docs
-                [ new RegExp(/<meta[^>]*>/gi), " " ],
-                [ new RegExp(/<[^>]*docs-internal-guid[^>]*>/gi), "" ],
-                [ new RegExp(/<\/b>(<br[^>]*>)?$/gi), "" ],
+                    // replace two bogus tags that begin pastes from google docs
+                    [ new RegExp(/<meta[^>]*>/gi), " " ],
+                    [ new RegExp(/<[^>]*docs-internal-guid[^>]*>/gi), "" ],
+                    [ new RegExp(/<\/b>(<br[^>]*>)?$/gi), "" ],
 
-                 // un-html spaces and newlines inserted by OS X
-                [ new RegExp(/<span class="Apple-converted-space">\s+<\/span>/g), ' ' ],
-                [ new RegExp(/<br class="Apple-interchange-newline">/g), '<br>' ],
+                     // un-html spaces and newlines inserted by OS X
+                    [ new RegExp(/<span class="Apple-converted-space">\s+<\/span>/g), ' ' ],
+                    [ new RegExp(/<br class="Apple-interchange-newline">/g), '<br>' ],
 
-                 // convert divs to paragraphs
-                [ new RegExp(/<(\/?)div>/), '<$1p>' ],
+                     // convert divs to paragraphs
+                    [ new RegExp(/<(\/?)div>/), '<$1p>' ],
 
-                // replace google docs italics+bold with a span to be replaced once the html is inserted
-                [ new RegExp(/<span[^>]*(font-style:italic;font-weight:bold|font-weight:bold;font-style:italic)[^>]*>/gi), '<span class="replace-with italic bold">' ],
+                    // replace google docs italics+bold with a span to be replaced once the html is inserted
+                    [ new RegExp(/<span[^>]*(font-style:italic;font-weight:bold|font-weight:bold;font-style:italic)[^>]*>/gi), '<span class="replace-with italic bold">' ],
 
-                // replace google docs italics with a span to be replaced once the html is inserted
-                [ new RegExp(/<span[^>]*font-style:italic[^>]*>/gi), '<span class="replace-with italic">' ],
+                    // replace google docs italics with a span to be replaced once the html is inserted
+                    [ new RegExp(/<span[^>]*font-style:italic[^>]*>/gi), '<span class="replace-with italic">' ],
 
-                //[ replace google docs bolds with a span to be replaced once the html is inserted
-                [ new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">' ],
+                    //[ replace google docs bolds with a span to be replaced once the html is inserted
+                    [ new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">' ],
 
-                 // replace styled or unadorned spans with their contents
-                [ new RegExp(/<span([^>]*style[^>]*)?>([^<]*)<\/span>/gi), '$2' ],
+                     // replace styled or unadorned spans with their contents
+                    [ new RegExp(/<span([^>]*style[^>]*)?>([^<]*)<\/span>/gi), '$2' ],
 
-                 // remove all remaining style and dir attributes
-                [ new RegExp(/ (style|dir)="[^"]*"/gi), '' ],
+                     // remove all remaining style and dir attributes
+                    [ new RegExp(/ (style|dir)="[^"]*"/gi), '' ],
 
-                 // replace  manually entered b/i/a tags with real ones
-                [ new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>' ],
+                     // replace  manually entered b/i/a tags with real ones
+                    [ new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>' ],
 
-                 // replace  manually entered b/i/a tags with real ones
-                [ new RegExp(/&lt;a\s+href=(&quot;|&rdquo;|&ldquo;|“|”)([^&]+)(&quot;|&rdquo;|&ldquo;|“|”)&gt;/gi), '<a href="$2">' ],
+                     // replace  manually entered b/i/a tags with real ones
+                    [ new RegExp(/&lt;a\s+href=(&quot;|&rdquo;|&ldquo;|“|”)([^&]+)(&quot;|&rdquo;|&ldquo;|“|”)&gt;/gi), '<a href="$2">' ],
 
-                 // remove br's between paragraphs
-                [ new RegExp(/<\/p><br\/?><p/gi), '</p><p' ],
+                     // remove br's between paragraphs
+                    [ new RegExp(/<\/p><br\/?><p/gi), '</p><p' ],
 
-                 // un-html spaces
-                [ new RegExp(/&nbsp;/gi), ' ' ]
+                     // un-html spaces
+                    [ new RegExp(/&nbsp;/gi), ' ' ]
 
-            ];
+                ];
             /*jslint regexp: false*/
 
             for (i = 0; i < replacements.length; i += 1) {
                 text = text.replace(replacements[i][0], replacements[i][1]);
             }
 
+            window.console.log(multiline);
+
             if (multiline) {
 
                 // the browser seems to need this context or it will insert divs instead of p's sometimes
-                document.execCommand('insertHTML', false, "<p></p>");
+                document.execCommand('insertHTML', false, "<p><ins class=\"medium-editor-insertion-point\"></ins></p>");
 
                 // double br's aren't converted to p tags, but if we simulate them by inserting
                 // a plain-text newline, the browser will make p's in the contenteditable area
@@ -1085,42 +1058,55 @@ if (typeof module === 'object') {
                     document.execCommand('insertHTML', false, badGraphs[i]);
                 }
 
-                // this.cleanupSpans();
+                document.execCommand('insertText', false, "\n");
+
+                this.cleanupSpans(el);
 
                 // and one final pass to clear br's just inside close p's and assorted extranious paragraphs
-                // wizzy.el.innerHTML = wizzy.el.innerHTML.replace(/<p><br><\/p>/g, '').replace(/<p> *<\/p>/g, '').replace(/<br\/?><\/p><p>/gi, '</p><p>');
-            } else {
+                el.innerHTML = el.innerHTML.replace(/<p><br><\/p>/g, '').replace(/<p> *<\/p>/g, '').replace(/<br\/?><\/p><p>/gi, '</p><p>');
 
-                return text;
+            } else {
+                document.execCommand('insertHTML', false, text);
+
+                this.cleanupSpans(el);
             }
 
 
+        },
+
+        cleanupSpans: function(container_el) {
+
+            var i,
+                el,
+                new_el,
+                spans = container_el.querySelectorAll('.replace-with');
+
+            for (i = 0; i < spans.length; i += 1) {
+
+                el = spans[i];
+                new_el = document.createElement(el.classList.contains('bold') ? 'b' : 'i');
+
+                if (el.classList.contains('bold') && el.classList.contains('italic')) {
+
+                    // add an i tag as well if this has both italics and bold
+                    new_el.innerHTML = '<i>' + el.innerHTML + '</i>';
+
+                } else {
+
+                    new_el.innerHTML = el.innerHTML;
+
+                }
+                el.parentNode.replaceChild(new_el, el);
+
+            }
+
+            spans = container_el.getElementsByTagName('SPAN');
+            for (i = 0; i < spans.length; i += 1) {
+                el = spans[i];
+                el.parentNode.replaceChild(document.createTextNode(el.innerText), el);
+            }
+
         }
-
-        // cleanupSpans: function() {
-        //
-        //     wizzy.el.select('.replace-with').each(function(el) {
-        //         var new_el = new Element(el.hasClassName('bold') ? 'b' : 'i');
-        //
-        //         if (el.hasClassName('bold') && el.hasClassName('italic'))
-        //         {
-        //             // add an i tag as well if this has both italics and bold
-        //             new_el.innerHTML = '<i>' + el.innerHTML + '</i>';
-        //         }
-        //         else
-        //         {
-        //             new_el.innerHTML = el.innerHTML;
-        //         }
-        //         el.parentNode.replaceChild(new_el, el);
-        //     });
-        //
-        //     wizzy.el.select('span').each(function(el) {
-        //         el.parentNode.replaceChild(document.createTextNode(el.innerText), el);
-        //     });
-        //
-        // },
-
-
 
     };
 
