@@ -8,7 +8,11 @@ MediumEditor has been written using vanilla JavaScript, no additional frameworks
 
 Tested on Google Chrome, Firefox and IE9+.
 
-[![Build Status](https://travis-ci.org/daviferreira/medium-editor.png?branch=master)](https://travis-ci.org/daviferreira/medium-editor)
+[![NPM info](https://nodei.co/npm/medium-editor.png?downloads=true)](https://nodei.co/npm/medium-editor.png?downloads=true)
+
+[![Travis build status](https://travis-ci.org/daviferreira/medium-editor.png?branch=master)](https://travis-ci.org/daviferreira/medium-editor)
+[![dependencies](https://david-dm.org/daviferreira/medium-editor.png)](https://david-dm.org/daviferreira/medium-editor)
+[![devDependency Status](https://david-dm.org/daviferreira/medium-editor/dev-status.png)](https://david-dm.org/daviferreira/medium-editor#info=devDependencies)
 
 # Basic usage
 
@@ -50,6 +54,7 @@ var elements = document.querySelectorAll('.editable'),
 * __diffLeft__: value in pixels to be added to the X axis positioning of the toolbar. Default: 0
 * __diffTop__: value in pixels to be added to the Y axis positioning of the toolbar. Default: -10
 * __disableReturn__:  enables/disables the use of the return-key. You can also set specific element behavior by using setting a data-disable-return attribute. Default: false
+* __disableDoubleReturn__:  allows/disallows two (or more) empty new lines. You can also set specific element behavior by using setting a data-disable-double-return attribute. Default: false
 * __disableToolbar__: enables/disables the toolbar, adding only the contenteditable behavior. You can also set specific element behavior by using setting a data-disable-toolbar attribute. Default: false
 * __firstHeader__: HTML tag to be used as first header. Default: h3
 * __forcePlainText__: Forces pasting as plain text. Default: true
@@ -135,11 +140,11 @@ npm install
 These are the available grunt tasks:
 
 * __js__: runs jslint and jasmine tests and creates minified and concatenated versions of the script;
-* __css__: runs compass and csslint
+* __css__: runs autoprefixer and csslint
 * __test__: runs jasmine tests, jslint and csslint
 * __watch__: watch for modifications on script/scss files
 
-The source files are located inside the __src__ directory. MediumEditor stylesheet was created using sass/compass, make sure you have the compass gem installed on your system.
+The source files are located inside the __src__ directory.
 
 ## Contributing
 
@@ -158,17 +163,17 @@ The source files are located inside the __src__ directory. MediumEditor styleshe
 ```
  project  : medium-editor
  repo age : 10 months
- active   : 110 days
- commits  : 429
- files    : 46
+ active   : 116 days
+ commits  : 455
+ files    : 47
  authors  :
-   317	Davi Ferreira           73.9%
-    20	Maxime de Visscher      4.7%
-     8	Derek Odegard           1.9%
-     8	Jarl Gunnar T. Flaten   1.9%
-     8	Pedro Nasser            1.9%
-     8	Seif                    1.9%
-     6	Andy Yaco-Mink          1.4%
+   337	Davi Ferreira           74.1%
+    20	Maxime de Visscher      4.4%
+     8	Andy Yaco-Mink          1.8%
+     8	Derek Odegard           1.8%
+     8	Jarl Gunnar T. Flaten   1.8%
+     8	Pedro Nasser            1.8%
+     8	Seif                    1.8%
      4	Sebastian Zuchmanski    0.9%
      4	minikomi                0.9%
      3	Andrew Hubbs            0.7%
@@ -177,7 +182,8 @@ The source files are located inside the __src__ directory. MediumEditor styleshe
      3	Troels Knak-Nielsen     0.7%
      3	arol                    0.7%
      3	ʞuıɯ-oɔɐʎ ʎpuɐ          0.7%
-     2	Ethan Turkeltaub        0.5%
+     2	Ethan Turkeltaub        0.4%
+     2	Jacob Magnusson         0.4%
      1	Adam Mulligan           0.2%
      1	Alberto Gasparin        0.2%
      1	Bitdeli Chef            0.2%
@@ -195,6 +201,7 @@ The source files are located inside the __src__ directory. MediumEditor styleshe
      1	Nic Malan               0.2%
      1	Noah Paessel            0.2%
      1	Pavel Linkesch          0.2%
+     1	Robert Koritnik         0.2%
      1	Søren Torp Petersen     0.2%
      1	Tom MacWright           0.2%
      1	happyaccidents          0.2%
@@ -204,6 +211,7 @@ The source files are located inside the __src__ directory. MediumEditor styleshe
      1	t_kjaergaard            0.2%
      1	typify                  0.2%
      1	waffleio                0.2%
+     1	zzjin                   0.2%
 ```
 
 ## License
