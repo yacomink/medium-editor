@@ -439,9 +439,7 @@ if (typeof module === 'object') {
 
         getSelectionElement: function () {
             var selection = window.getSelection(),
-                range = selection.getRangeAt(0),
-                current = range.commonAncestorContainer,
-                parent = current.parentNode,
+                range, current, parent,
                 result,
                 getMediumElement = function (e) {
                     var localParent = e;
@@ -456,6 +454,10 @@ if (typeof module === 'object') {
                 };
             // First try on current node
             try {
+                range = selection.getRangeAt(0);
+                current = range.commonAncestorContainer;
+                parent = current.parentNode;
+
                 if (current.getAttribute('data-medium-element')) {
                     result = current;
                 } else {
@@ -1007,9 +1009,10 @@ if (typeof module === 'object') {
                 block, negation is used specifically to match the end of an html
                 tag, and in fact unicode characters *should* be allowed.
             */
-            var i, badGraphs,
+            var i, elList, workEl,
                 el = this.getSelectionElement(),
                 multiline = /<p|<br|<div/.test(text),
+                xhr = new XMLHttpRequest(),
                 replacements = [
 
                     // replace two bogus tags that begin pastes from google docs
@@ -1033,12 +1036,6 @@ if (typeof module === 'object') {
                     //[ replace google docs bolds with a span to be replaced once the html is inserted
                     [new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">'],
 
-                     // replace styled or unadorned spans with their contents
-                    [new RegExp(/<span([^>]*style[^>]*)?>([^<]*)<\/span>/gi), '$2'],
-
-                     // remove all remaining style and dir attributes
-                    [new RegExp(/ (style|dir)="[^"]*"/gi), ''],
-
                      // replace  manually entered b/i/a tags with real ones
                     [new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>'],
 
@@ -1054,31 +1051,45 @@ if (typeof module === 'object') {
                 ];
             /*jslint regexp: false*/
 
+            xhr.open("POST", "log", true);
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhr.send(encodeURIComponent(text));
+
             for (i = 0; i < replacements.length; i += 1) {
                 text = text.replace(replacements[i][0], replacements[i][1]);
             }
 
-            window.console.log(multiline);
-
             if (multiline) {
 
-                // the browser seems to need this context or it will insert divs instead of p's sometimes
-                document.execCommand('insertHTML', false, "<p><ins class=\"medium-editor-insertion-point\"></ins></p>");
-
-                // double br's aren't converted to p tags, but if we simulate them by inserting
-                // a plain-text newline, the browser will make p's in the contenteditable area
-                badGraphs = text.split('<br><br>');
-                for (i = 0; i < badGraphs.length; i += 1) {
-                    document.execCommand('insertText', false, "\n");
-                    document.execCommand('insertHTML', false, badGraphs[i]);
-                }
-
+                // double br's aren't converted to p tags, but we want paragraphs.
+                elList = text.split('<br><br>');
+                document.execCommand('insertHTML', false, '<p>' + elList.join('</p><p>') + '</p>');
                 document.execCommand('insertText', false, "\n");
 
                 this.cleanupSpans(el);
 
-                // and one final pass to clear br's just inside close p's and assorted extranious paragraphs
-                el.innerHTML = el.innerHTML.replace(/<p><br><\/p>/g, '').replace(/<p> *<\/p>/g, '').replace(/<br\/?><\/p><p>/gi, '</p><p>');
+                elList = el.querySelectorAll('*');
+                for (i = 0; i < elList.length; i += 1) {
+
+                    workEl = elList[i];
+
+                    // delete ugly attributes
+                    workEl.removeAttribute('class');
+                    workEl.removeAttribute('style');
+                    workEl.removeAttribute('dir');
+
+                    switch (workEl.tagName.toLowerCase()) {
+                    case 'p':
+                    case 'div':
+                        this.filterCommonBlocks(workEl);
+                        break;
+                    case 'br':
+                        this.filterLineBreak(workEl);
+                        break;
+                    }
+
+                }
+
 
             } else {
                 document.execCommand('insertHTML', false, text);
@@ -1086,7 +1097,45 @@ if (typeof module === 'object') {
                 this.cleanupSpans(el);
             }
 
+        },
 
+        isCommonBlock: function (el) {
+            return (el && (el.tagName.toLowerCase() === 'p' || el.tagName.toLowerCase() === 'div'));
+        },
+        filterCommonBlocks: function (el) {
+            if (/^\s*$/.test(el.innerText)) {
+                el.parentNode.removeChild(el);
+            }
+        },
+        filterLineBreak: function (el) {
+            if (this.isCommonBlock(el.previousElementSibling)) {
+
+                // remove stray br's following common block elements
+                el.parentNode.removeChild(el);
+
+            } else if (this.isCommonBlock(el.parentNode) && (el.parentNode.firstChild === el || el.parentNode.lastChild === el)) {
+
+                // and br's that are the only child of a div/p
+                el.parentNode.removeChild(el);
+
+            } else if (el.parentNode.childElementCount === 1) {
+
+                // and br's that are the only child of a div/p
+                this.removeWithParent(el);
+
+            }
+
+        },
+
+        // remove an element, including its parent, if it is the only element within its parent
+        removeWithParent: function (el) {
+            if (el && el.parentNode) {
+                if (el.parentNode.parentNode && el.parentNode.childElementCount === 1) {
+                    el.parentNode.parentNode.removeChild(el.parentNode);
+                } else {
+                    el.parentNode.removeChild(el.parentNode);
+                }
+            }
         },
 
         cleanupSpans: function (container_el) {
@@ -1115,10 +1164,18 @@ if (typeof module === 'object') {
 
             }
 
-            spans = container_el.getElementsByTagName('SPAN');
+            spans = container_el.querySelectorAll('span');
             for (i = 0; i < spans.length; i += 1) {
+
                 el = spans[i];
-                el.parentNode.replaceChild(document.createTextNode(el.innerText), el);
+
+                // remove empty spans, replace others with their contents
+                if (/^\s*$/.test()) {
+                    el.parentNode.removeChild(el);
+                } else {
+                    el.parentNode.replaceChild(document.createTextNode(el.innerText), el);
+                }
+
             }
 
         }
