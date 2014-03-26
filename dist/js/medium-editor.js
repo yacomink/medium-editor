@@ -1016,7 +1016,6 @@ if (typeof module === 'object') {
                 replacements = [
 
                     // replace two bogus tags that begin pastes from google docs
-                    [new RegExp(/<meta[^>]*>/gi), " "],
                     [new RegExp(/<[^>]*docs-internal-guid[^>]*>/gi), ""],
                     [new RegExp(/<\/b>(<br[^>]*>)?$/gi), ""],
 
@@ -1036,10 +1035,10 @@ if (typeof module === 'object') {
                     //[ replace google docs bolds with a span to be replaced once the html is inserted
                     [new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">'],
 
-                     // replace  manually entered b/i/a tags with real ones
+                     // replace manually entered b/i/a tags with real ones
                     [new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>'],
 
-                     // replace  manually entered b/i/a tags with real ones
+                     // replace manually entered b/i/a tags with real ones
                     [new RegExp(/&lt;a\s+href=(&quot;|&rdquo;|&ldquo;|“|”)([^&]+)(&quot;|&rdquo;|&ldquo;|“|”)&gt;/gi), '<a href="$2">'],
 
                      // remove br's between paragraphs
@@ -1063,10 +1062,9 @@ if (typeof module === 'object') {
 
                 // double br's aren't converted to p tags, but we want paragraphs.
                 elList = text.split('<br><br>');
-                document.execCommand('insertHTML', false, '<p>' + elList.join('</p><p>') + '</p>');
-                document.execCommand('insertText', false, "\n");
 
-                this.cleanupSpans(el);
+                this.pasteHTML('<p>' + elList.join('</p><p>') + '</p>');
+                document.execCommand('insertText', false, "\n");
 
                 elList = el.querySelectorAll('*');
                 for (i = 0; i < elList.length; i += 1) {
@@ -1086,19 +1084,33 @@ if (typeof module === 'object') {
                     case 'br':
                         this.filterLineBreak(workEl);
                         break;
+                    case 'meta':
+                        workEl.parentNode.removeChild(workEl);
+                        break;
                     }
 
                 }
 
 
             } else {
-                document.execCommand('insertHTML', false, text);
 
-                this.cleanupSpans(el);
+                this.pasteHTML(text);
+
             }
 
         },
 
+        pasteHTML: function (html) {
+            var pasteBlock = document.createDocumentFragment();
+
+            pasteBlock.appendChild(document.createElement('body'));
+
+            pasteBlock.querySelector('body').innerHTML = html;
+
+            this.cleanupSpans(pasteBlock.querySelector('body'));
+
+            document.execCommand('insertHTML', false, pasteBlock.querySelector('body').innerHTML);
+        },
         isCommonBlock: function (el) {
             return (el && (el.tagName.toLowerCase() === 'p' || el.tagName.toLowerCase() === 'div'));
         },
