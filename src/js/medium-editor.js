@@ -1068,15 +1068,11 @@ if (typeof module === 'object') {
                 this.pasteHTML('<p>' + elList.join('</p><p>') + '</p>');
                 document.execCommand('insertText', false, "\n");
 
-                elList = el.querySelectorAll('*');
+                // block element cleanup
+                elList = el.querySelectorAll('p,div,br');
                 for (i = 0; i < elList.length; i += 1) {
 
                     workEl = elList[i];
-
-                    // delete ugly attributes
-                    workEl.removeAttribute('class');
-                    workEl.removeAttribute('style');
-                    workEl.removeAttribute('dir');
 
                     switch (workEl.tagName.toLowerCase()) {
                     case 'p':
@@ -1085,9 +1081,6 @@ if (typeof module === 'object') {
                         break;
                     case 'br':
                         this.filterLineBreak(workEl);
-                        break;
-                    case 'meta':
-                        workEl.parentNode.removeChild(workEl);
                         break;
                     }
 
@@ -1103,15 +1096,31 @@ if (typeof module === 'object') {
         },
 
         pasteHTML: function (html) {
-            var pasteBlock = document.createDocumentFragment();
+            var elList, workEl, i, fragmentBody, pasteBlock = document.createDocumentFragment();
 
             pasteBlock.appendChild(document.createElement('body'));
 
-            pasteBlock.querySelector('body').innerHTML = html;
+            fragmentBody = pasteBlock.querySelector('body');
+            fragmentBody.innerHTML = html;
 
-            this.cleanupSpans(pasteBlock.querySelector('body'));
+            this.cleanupSpans(fragmentBody);
 
-            document.execCommand('insertHTML', false, pasteBlock.querySelector('body').innerHTML);
+            elList = fragmentBody.querySelectorAll('*');
+            for (i = 0; i < elList.length; i += 1) {
+
+                workEl = elList[i];
+
+                // delete ugly attributes
+                workEl.removeAttribute('class');
+                workEl.removeAttribute('style');
+                workEl.removeAttribute('dir');
+
+                if (workEl.tagName.toLowerCase() === 'meta') {
+                    workEl.parentNode.removeChild(workEl);
+                }
+
+            }
+            document.execCommand('insertHTML', false, fragmentBody.innerHTML.replace(/&nbsp;/g, ' '));
         },
         isCommonBlock: function (el) {
             return (el && (el.tagName.toLowerCase() === 'p' || el.tagName.toLowerCase() === 'div'));
